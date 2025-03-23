@@ -4,24 +4,35 @@ import axios from "axios";
 const AddBook = () => {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(null); // Променяме на null, тъй като ще приемаме файл
   const [description, setDescription] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Създаване на FormData обект
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("author", author);
+    formData.append("image", image); // Слагаме каченото изображение
+    formData.append("description", description);
+
     try {
-      const response = await axios.post("https://your-api-url.com/books", {
-        title,
-        author,
-        image,
-        description,
+      // Изпращане на POST заявка с FormData
+      const response = await axios.post("http://localhost:5000/api/books", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data", // Заглавие за multipart форма
+        },
       });
       console.log("Book added:", response.data);
       // Можеш да добавиш тук логика за това какво да се случи след успешното добавяне
     } catch (error) {
       console.error("Error adding book:", error);
     }
+  };
+
+  const handleImageChange = (e) => {
+    setImage(e.target.files[0]); // Записваме файла
   };
 
   return (
@@ -49,9 +60,8 @@ const AddBook = () => {
         <div>
           <label>Снимка:</label>
           <input
-            type="text"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
+            type="file"
+            onChange={handleImageChange}
             required
           />
         </div>
@@ -70,3 +80,4 @@ const AddBook = () => {
 };
 
 export default AddBook;
+

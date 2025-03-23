@@ -12,7 +12,7 @@ const BookDetails = () => {
     const fetchBookDetails = async () => {
       try {
         const response = await axios.get(
-          `https://your-api-url.com/books/${id}` // Замени с твоя URL на API-то
+          `http://localhost:5000/api/books` // Замени с твоя URL на API-то
         );
         setBook(response.data);
         setLoading(false); // Книгата е заредена
