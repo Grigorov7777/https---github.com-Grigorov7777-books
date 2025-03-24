@@ -10,12 +10,18 @@ const AddBook = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Проверка дали всички задължителни полета са попълнени
+    if (!title || !author || !image) {
+      alert("Моля, попълнете всички задължителни полета.");
+      return;
+    }
+
     // Създаване на FormData обект
     const formData = new FormData();
     formData.append("title", title);
     formData.append("author", author);
-    formData.append("image", image); // Слагаме каченото изображение
     formData.append("description", description);
+    formData.append("image", image); // Добавяне на изображение
 
     try {
       // Изпращане на POST заявка с FormData
@@ -24,10 +30,13 @@ const AddBook = () => {
           "Content-Type": "multipart/form-data", // Заглавие за multipart форма
         },
       });
+
       console.log("Book added:", response.data);
       // Можеш да добавиш тук логика за това какво да се случи след успешното добавяне
+      alert("Книгата беше успешно добавена!");
     } catch (error) {
-      console.error("Error adding book:", error);
+      console.error("Error adding book:", error.response ? error.response.data : error.message);
+      alert("Грешка при добавяне на книгата. Моля, опитайте отново.");
     }
   };
 
@@ -70,7 +79,6 @@ const AddBook = () => {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            required
           ></textarea>
         </div>
         <button type="submit">Добави книга</button>
@@ -80,4 +88,5 @@ const AddBook = () => {
 };
 
 export default AddBook;
+
 
