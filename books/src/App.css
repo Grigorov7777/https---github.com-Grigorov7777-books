@@ -1,23 +1,40 @@
+/* Глобален стил за фон на приложението */
+body {
+  background: url('/public/max-bottinger-HPNdlWL2a3g-unsplash.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #3E2723;
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Стил за #root контейнера */
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.7); /* Прозрачен бял фон за съдържанието */
+  border-radius: 10px; /* Леко заоблени ъгли */
 }
 
+/* Лого стил */
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+/* Анимация на логото */
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -33,10 +50,20 @@
   }
 }
 
+/* Карти с текстури */
 .card {
   padding: 2em;
+  background-color: rgba(255, 255, 255, 0.8); /* Прозрачен бял фон за картите */
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Цветовете на линковете и текстовете */
 .read-the-docs {
-  color: #888;
+  color: #8B4513; /* Кафяв цвят за линковете */
+  text-decoration: none;
+}
+
+.read-the-docs:hover {
+  color: #5C4033; /* По-тъмен кафяв при hover */
 }

@@ -1,22 +1,23 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase'; // Уверете се, че използвате правилния импорт за Firestore
-import { doc, setDoc, getDoc } from "firebase/firestore"; 
+import { db } from '../firebase';
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { css } from '@emotion/react';
 
 const BookList = () => {
   const [books, setBooks] = useState([]);
-  const [searchQuery, setSearchQuery] = useState(""); // Стойност за търсене
-  const [loading, setLoading] = useState(false); // Променяме на false първоначално
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [review, setReview] = useState(""); // Състояние за мнението на потребителя
-  const [selectedBookId, setSelectedBookId] = useState(null); // ID на избраната книга за мнение
+  const [review, setReview] = useState("");
+  const [selectedBookId, setSelectedBookId] = useState(null);
 
-  // Функция за търсене на книги
   const fetchBooks = async () => {
-    setLoading(true); // Показваме индикатор за зареждане
+    setLoading(true);
     try {
-      let url = 'http://localhost:5000/api/books'; // Началният URL за книги
+      let url = 'http://localhost:5000/api/books';
       if (searchQuery) {
-        url += `?search=${searchQuery}`; // Ако има търсене, добавяме параметър към URL
+        url += `?search=${searchQuery}`;
       }
       const response = await fetch(url);
       if (!response.ok) {
@@ -31,27 +32,21 @@ const BookList = () => {
     }
   };
 
-  // Извикваме функцията за търсене при натискане на бутона
   const handleSearchClick = () => {
-    fetchBooks(); // Стартираме търсенето
+    fetchBooks();
   };
 
-  // Функция за записване на мнение в Firestore
   const handleReviewSubmit = async (bookId) => {
     if (review.trim()) {
       try {
-        // Добавяме мнението към конкретната книга в Firestore
-        const bookRef = doc(db, "books", bookId); // Вземаме референция за книгата
+        const bookRef = doc(db, "books", bookId);
         const docSnapshot = await getDoc(bookRef);
 
         if (docSnapshot.exists()) {
-          // Ако книгата съществува в Firestore, добавяме мнението
-          const currentReviews = docSnapshot.data().reviews || []; // Вземаме текущите мнения (ако има)
+          const currentReviews = docSnapshot.data().reviews || [];
           const updatedReviews = [...currentReviews, { text: review, timestamp: new Date() }];
-          
-          // Записваме актуализираните мнения обратно в Firestore
           await setDoc(bookRef, { reviews: updatedReviews }, { merge: true });
-          setReview(""); // Изчистваме полето за мнението
+          setReview("");
           alert("Мнението е успешно добавено!");
         } else {
           alert("Книгата не съществува.");
@@ -68,56 +63,64 @@ const BookList = () => {
   if (error) return <p>Грешка: {error}</p>;
 
   return (
-    <div>
-      <h2>Списък с книги</h2>
-      {/* Поле за търсене */}
-      <input 
-        type="text" 
-        placeholder="Търсете по заглавие или автор..." 
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)} 
-      />
-      {/* Бутон за търсене */}
-      <button onClick={handleSearchClick}>Търсене</button>
+    <div css={css`padding: 24px;`}>
+      <h2 css={css`font-size: 24px; font-weight: bold; margin-bottom: 16px;`}>Списък с книги</h2>
+
+      <div css={css`margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;`}>
+        <input
+          type="text"
+          placeholder="Търсете по заглавие или автор..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          css={css`padding: 8px; border: 1px solid #D1D5DB; border-radius: 4px; width: 50%;`}
+        />
+        <button
+          onClick={handleSearchClick}
+          css={css`margin-left: 16px; background-color: #3B82F6; color: white; padding: 8px 16px; border-radius: 4px; &:hover {background-color: #2563EB;}`}
+        >
+          Търсене
+        </button>
+      </div>
 
       {books.length === 0 ? (
         <p>Няма налични книги.</p>
       ) : (
         <ul>
           {books.map((book) => (
-            <li key={book.id}>
-              <h3>{book.title}</h3>
+            <li key={book.id} css={css`background-color: white; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border-radius: 8px;`}>
+              <h3 css={css`font-size: 20px; font-weight: 600;`}>{book.title}</h3>
               <p><strong>Автор:</strong> {book.author}</p>
               {book.description && <p><strong>Описание:</strong> {book.description}</p>}
               {book.price && <p><strong>Цена:</strong> {book.price} лв.</p>}
 
-              {/* Поле за мнение */}
-              <div>
-                <h4>Напишете мнение</h4>
+              <div css={css`margin-top: 16px;`}>
+                <h4 css={css`font-weight: 500;`}>Напишете мнение</h4>
                 <textarea
                   value={selectedBookId === book.id ? review : ""}
                   onChange={(e) => setReview(e.target.value)}
                   placeholder="Напишете вашето мнение..."
                   rows="4"
-                  cols="50"
+                  css={css`width: 100%; padding: 8px; border: 1px solid #D1D5DB; border-radius: 4px; margin-top: 8px;`}
                 />
-                <button 
+                <button
                   onClick={() => {
-                    setSelectedBookId(book.id); // Записваме ID-то на избраната книга
-                    handleReviewSubmit(book.id); // Записваме мнението
+                    setSelectedBookId(book.id);
+                    handleReviewSubmit(book.id);
                   }}
+                  css={css`margin-top: 8px; background-color: #10B981; color: white; padding: 8px 16px; border-radius: 4px; &:hover {background-color: #059669;}`}
                 >
                   Добавете мнение
                 </button>
               </div>
 
-              {/* Показваме съществуващите мнения */}
-              <div>
-                <h4>Мнения:</h4>
+              <div css={css`margin-top: 16px;`}>
+                <h4 css={css`font-weight: 500;`}>Мнения:</h4>
                 {book.reviews && book.reviews.length > 0 ? (
                   <ul>
                     {book.reviews.map((review, index) => (
-                      <li key={index}>{review.text}</li>
+                      <li key={index} css={css`margin-top: 8px; padding: 8px; background-color: #F3F4F6; border-radius: 4px;`}>
+                        {review.text}
+                      </li>
                     ))}
                   </ul>
                 ) : (
