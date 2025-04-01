@@ -10,10 +10,12 @@ const BookList = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [review, setReview] = useState("");
+  const [username, setUsername] = useState(""); // Добавяме състояние за потребителското име
   const [selectedBookId, setSelectedBookId] = useState(null);
 
   const fetchBooks = async () => {
     setLoading(true);
+    setError(null);
     try {
       let url = 'http://localhost:5000/api/books';
       if (searchQuery) {
@@ -37,16 +39,28 @@ const BookList = () => {
   };
 
   const handleReviewSubmit = async (bookId) => {
-    if (review.trim()) {
+    if (review.trim() && username.trim()) { // Проверка дали има въведено мнение и потребителско име
       try {
         const bookRef = doc(db, "books", bookId);
         const docSnapshot = await getDoc(bookRef);
 
         if (docSnapshot.exists()) {
           const currentReviews = docSnapshot.data().reviews || [];
-          const updatedReviews = [...currentReviews, { text: review, timestamp: new Date() }];
+          const updatedReviews = [
+            ...currentReviews,
+            { text: review, username: username, timestamp: new Date() } // Добавяме потребителското име към мнението
+          ];
+          
           await setDoc(bookRef, { reviews: updatedReviews }, { merge: true });
-          setReview("");
+
+          setBooks((prevBooks) => 
+            prevBooks.map((book) => 
+              book.id === bookId ? { ...book, reviews: updatedReviews } : book
+            )
+          );
+          
+          setReview(""); 
+          setUsername(""); // Изчистваме полето за потребителско име след изпращане на мнението
           alert("Мнението е успешно добавено!");
         } else {
           alert("Книгата не съществува.");
@@ -55,9 +69,17 @@ const BookList = () => {
         alert("Грешка при запис на мнението: " + error.message);
       }
     } else {
-      alert("Моля, въведете мнение.");
+      alert("Моля, въведете мнение и потребителско име.");
     }
   };
+
+  useEffect(() => {
+    if (searchQuery) {
+      fetchBooks();
+    } else {
+      setBooks([]); 
+    }
+  }, [searchQuery]);
 
   if (loading) return <p>Зареждане на книгите...</p>;
   if (error) return <p>Грешка: {error}</p>;
@@ -83,7 +105,7 @@ const BookList = () => {
       </div>
 
       {books.length === 0 ? (
-        <p>Няма налични книги.</p>
+        <p>Няма намерени книги за търсенето "{searchQuery}".</p>
       ) : (
         <ul>
           {books.map((book) => (
@@ -95,8 +117,15 @@ const BookList = () => {
 
               <div css={css`margin-top: 16px;`}>
                 <h4 css={css`font-weight: 500;`}>Напишете мнение</h4>
+                <input
+                  type="text"
+                  placeholder="Вашето име..."
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)} // Добавяме поле за име
+                  css={css`padding: 8px; border: 1px solid #D1D5DB; border-radius: 4px; margin-top: 8px; width: 100%;`}
+                />
                 <textarea
-                  value={selectedBookId === book.id ? review : ""}
+                  value={review}
                   onChange={(e) => setReview(e.target.value)}
                   placeholder="Напишете вашето мнение..."
                   rows="4"
@@ -119,7 +148,7 @@ const BookList = () => {
                   <ul>
                     {book.reviews.map((review, index) => (
                       <li key={index} css={css`margin-top: 8px; padding: 8px; background-color: #F3F4F6; border-radius: 4px;`}>
-                        {review.text}
+                        <strong>{review.username}:</strong> {review.text} {/* Показваме името на потребителя заедно с мнението */}
                       </li>
                     ))}
                   </ul>

@@ -32,15 +32,21 @@ const inputStyle = css`
 `;
 
 const buttonStyle = css`
-  background-color: #1D4ED8;
+  background-color: #8B4513;
   color: white;
-  padding: 8px 16px;
+  padding: 12px 20px;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-weight: bold;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease-in-out;
+  font-family: 'Times New Roman', serif;
 
   &:hover {
-    background-color: #2563EB;
+    background-color: #A0522D;
+    transform: scale(1.05);
   }
 `;
 
@@ -102,28 +108,6 @@ const Home = () => {
     fetchBooks();  
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      await registerUser(email, password);
-      alert("Регистрацията е успешна!");
-      navigate("/"); 
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      await loginUser(email, password);
-      alert("Входът е успешен!");
-      navigate("/"); 
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await logoutUser();
@@ -134,12 +118,18 @@ const Home = () => {
   };
 
   const handleAddReview = async (bookId, reviewText) => {
+    if (!reviewText.trim()) {
+      alert("Моля, въведете ревю!");
+      return;
+    }
+
     try {
       await addReview(bookId, reviewText);
-      alert("Мнението е добавено!");
-      setReviewText(""); 
+      alert("Мнението е успешно добавено!");
+      setReviewText("");  // Изчистване на полето за текст след добавяне на ревю
     } catch (error) {
-      alert("Грешка при добавяне на мнение: " + error.message);
+      console.error("Грешка при добавяне на мнението:", error);
+      alert("Не успяхме да добавим мнението.");
     }
   };
 
@@ -193,78 +183,6 @@ const Home = () => {
               </li>
             ))}
           </ul>
-        )}
-      </div>
-
-      <div>
-        {isRegistered ? (
-          <div>
-            <h2>Вход в акаунт</h2>
-            <form onSubmit={handleLogin}>
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                css={inputStyle}
-              />
-              <input
-                type="password"
-                placeholder="Парола"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                css={inputStyle}
-              />
-              <button type="submit" css={buttonStyle}>
-                Влез
-              </button>
-            </form>
-            <p>
-              Нямате акаунт?{" "}
-              <span
-                onClick={() => setIsRegistered(false)}
-                style={{ color: "blue", cursor: "pointer" }}
-              >
-                Регистрирайте се тук.
-              </span>
-            </p>
-          </div>
-        ) : (
-          <div>
-            <h2>Регистрация</h2>
-            <form onSubmit={handleRegister}>
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                css={inputStyle}
-              />
-              <input
-                type="password"
-                placeholder="Парола"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                css={inputStyle}
-              />
-              <button type="submit" css={buttonStyle}>
-                Регистрирайте се
-              </button>
-            </form>
-            <p>
-              Вече имате акаунт?{" "}
-              <span
-                onClick={() => setIsRegistered(true)}
-                style={{ color: "blue", cursor: "pointer" }}
-              >
-                Влезте тук.
-              </span>
-            </p>
-          </div>
         )}
       </div>
 

@@ -27,6 +27,11 @@ const upload = multer({ storage: storage });
 // Обслужване на статични файлове от папката uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Рут за кореновия път
+app.get('/', (req, res) => {
+    res.send('Welcome to the Book API!'); // Може да добавите и HTML страница или съобщение
+});
+
 // Модел на данни за книги
 let books = [
     { id: 1, title: '1984', author: 'George Orwell' },
