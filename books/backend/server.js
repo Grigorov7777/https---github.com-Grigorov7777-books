@@ -29,18 +29,18 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Рут за кореновия път
 app.get('/', (req, res) => {
-    res.send('Welcome to the Book API!'); // Може да добавите и HTML страница или съобщение
+    res.send('Welcome to the Book API!');
 });
 
-// Модел на данни за книги
+// Модел на данни за книги (в реален проект може да бъде свързан към база данни)
 let books = [
-    { id: 1, title: '1984', author: 'George Orwell' },
-    { id: 2, title: 'To Kill a Mockingbird', author: 'Harper Lee' }
+    { id: 1, title: '1984', author: 'George Orwell', description: 'A dystopian novel', image: '' },
+    { id: 2, title: 'To Kill a Mockingbird', author: 'Harper Lee', description: 'A classic novel', image: '' }
 ];
 
 // Рут за получаване на всички книги (с възможност за търсене)
 app.get('/api/books', (req, res) => {
-    const { search } = req.query;  // Взимаме параметър за търсене
+    const { search } = req.query;
     if (search) {
         const filteredBooks = books.filter(book =>
             book.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,7 +48,17 @@ app.get('/api/books', (req, res) => {
         );
         return res.json(filteredBooks);
     }
-    res.json(books);  // Връща всички книги
+    res.json(books);
+});
+
+// Рут за получаване на една книга по ID
+app.get('/api/books/:id', (req, res) => {
+    const bookId = parseInt(req.params.id);
+    const book = books.find(b => b.id === bookId);
+    if (!book) {
+        return res.status(404).json({ message: 'Book not found' });
+    }
+    res.json(book);
 });
 
 // Рут за добавяне на нова книга
@@ -83,19 +93,25 @@ app.delete('/api/books/:id', (req, res) => {
 });
 
 // Рут за редактиране на книга по ID
-app.put('/api/books/:id', (req, res) => {
+app.put('/api/books/:id', upload.single('image'), (req, res) => {
     const bookId = parseInt(req.params.id);
-    const { title, author, description } = req.body;
-
     let book = books.find(book => book.id === bookId);
+
     if (!book) {
         return res.status(404).json({ message: 'Book not found' });
     }
 
-    // Редактиране на данни
+    // Обновяване на информацията на книгата
+    const { title, author, description } = req.body;
+
     book.title = title || book.title;
     book.author = author || book.author;
     book.description = description || book.description;
+
+    // Ако има ново изображение, го обновяваме
+    if (req.file) {
+        book.image = `/uploads/${req.file.filename}`;
+    }
 
     res.json(book);  // Връща редактираната книга
 });

@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { registerUser, loginUser, logoutUser, addReview } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth";
 
 // Стилове
 const containerStyle = css`
@@ -80,11 +81,26 @@ const Home = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isRegistered, setIsRegistered] = useState(true); 
-  const [searchQuery, setSearchQuery] = useState(""); 
-  const [reviewText, setReviewText] = useState(""); 
-  const [books, setBooks] = useState([]);  
+  const [isRegistered, setIsRegistered] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const auth = getAuth();
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+      console.log("Логнат ли е потребителят?", user ? "Да" : "Не");
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -95,9 +111,10 @@ const Home = () => {
         throw new Error("Грешка при зареждане на книгите");
       }
       const data = await response.json();
+      console.log("Получени книги:", data);
       setBooks(data);
     } catch (error) {
-      console.log(error.message);
+      console.log("Грешка:", error.message);
     } finally {
       setLoading(false);
     }
@@ -105,7 +122,7 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchBooks();  
+    fetchBooks();
   };
 
   const handleLogout = async () => {
@@ -124,13 +141,18 @@ const Home = () => {
     }
 
     try {
-      await addReview(bookId, reviewText);
+      const response = await addReview(bookId, reviewText);
+      console.log("Отговор от добавяне на ревю:", response);
       alert("Мнението е успешно добавено!");
-      setReviewText("");  // Изчистване на полето за текст след добавяне на ревю
+      setReviewText("");
     } catch (error) {
       console.error("Грешка при добавяне на мнението:", error);
       alert("Не успяхме да добавим мнението.");
     }
+  };
+
+  const handleEditBook = (bookId) => {
+    navigate(`/edit-book/${bookId}`);
   };
 
   return (
@@ -180,13 +202,26 @@ const Home = () => {
                     Добави мнение
                   </button>
                 </div>
+
+                {isLoggedIn && (
+                  <button 
+                    onClick={() => handleEditBook(book.id)} 
+                    css={buttonStyle}
+                  >
+                    Редактирай книга
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <button onClick={handleLogout} css={buttonStyle}>Изход</button>
+      {isLoggedIn && (
+        <button onClick={handleLogout} css={buttonStyle}>
+          Изход
+        </button>
+      )}
     </div>
   );
 };
