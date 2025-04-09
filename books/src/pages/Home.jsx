@@ -1,120 +1,69 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 import React, { useState, useEffect } from "react";
-import { registerUser, loginUser, logoutUser, addReview } from "../firebase";
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+  addReview,
+  getReviews,
+  updateReview,
+  deleteReview,
+  auth
+} from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 
-// Стилове
-const containerStyle = css`
-  padding: 24px;
-  max-width: 960px;
-  margin: 0 auto;
-`;
-
-const headerStyle = css`
-  font-size: 3rem;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 24px;
-`;
-
-const formStyle = css`
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-`;
-
-const inputStyle = css`
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 66%;
-`;
-
+// Стилове (същите както преди)
+const containerStyle = css`padding: 24px; max-width: 960px; margin: 0 auto;`;
+const headerStyle = css`font-size: 3rem; font-weight: bold; text-align: center; margin-bottom: 24px;`;
+const formStyle = css`display: flex; gap: 16px; margin-bottom: 24px;`;
+const inputStyle = css`padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 66%;`;
 const buttonStyle = css`
-  background-color: #8B4513;
-  color: white;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  text-transform: uppercase;
-  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease-in-out;
+  background-color: #8B4513; color: white; padding: 12px 20px; border: none;
+  border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3); transition: all 0.3s ease-in-out;
   font-family: 'Times New Roman', serif;
-
-  &:hover {
-    background-color: #A0522D;
-    transform: scale(1.05);
-  }
+  &:hover { background-color: #A0522D; transform: scale(1.05); }
 `;
-
-const bookListStyle = css`
-  margin-top: 24px;
-  list-style-type: none;
-  padding: 0;
-`;
-
-const bookItemStyle = css`
-  padding: 16px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const textareaStyle = css`
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-top: 8px;
-`;
-
-const loginRegisterStyle = css`
-  margin-top: 24px;
-`;
+const bookListStyle = css`margin-top: 24px; list-style-type: none; padding: 0;`;
+const bookItemStyle = css`padding: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px;`;
+const textareaStyle = css`width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px;`;
+const loginRegisterStyle = css`margin-top: 24px;`;
 
 const Home = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isRegistered, setIsRegistered] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [reviewText, setReviewText] = useState("");
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [reviewInputs, setReviewInputs] = useState({}); // { bookId: 'text' }
+  const [reviews, setReviews] = useState({}); // { bookId: [reviews] }
 
-  const auth = getAuth();
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-      console.log("Логнат ли е потребителят?", user ? "Да" : "Не");
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+      setCurrentUser(user);
     });
-
     return () => unsubscribe();
   }, []);
 
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const url = `http://localhost:5000/api/books?search=${searchQuery}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Грешка при зареждане на книгите");
-      }
-      const data = await response.json();
-      console.log("Получени книги:", data);
+      const res = await fetch(`http://localhost:5000/api/books?search=${searchQuery}`);
+      const data = await res.json();
       setBooks(data);
+
+      const reviewMap = {};
+      for (const book of data) {
+        const bookReviews = await getReviews(book.id);
+        reviewMap[book.id] = bookReviews;
+      }
+      setReviews(reviewMap);
     } catch (error) {
-      console.log("Грешка:", error.message);
+      console.error("Грешка при зареждане:", error.message);
     } finally {
       setLoading(false);
     }
@@ -125,102 +74,134 @@ const Home = () => {
     fetchBooks();
   };
 
-  const handleLogout = async () => {
+  const handleAddReview = async (bookId) => {
+    const text = reviewInputs[bookId]?.trim();
+    if (!text) return alert("Моля, въведете мнение.");
     try {
-      await logoutUser();
-      alert("Изходът е успешен!");
-    } catch (error) {
-      alert(error.message);
+      await addReview(bookId, text);
+      setReviewInputs(prev => ({ ...prev, [bookId]: "" }));
+      const updatedReviews = await getReviews(bookId);
+      setReviews(prev => ({ ...prev, [bookId]: updatedReviews }));
+    } catch (err) {
+      alert("Грешка при добавяне на мнение.");
     }
   };
 
-  const handleAddReview = async (bookId, reviewText) => {
-    if (!reviewText.trim()) {
-      alert("Моля, въведете ревю!");
-      return;
-    }
-
-    try {
-      const response = await addReview(bookId, reviewText);
-      console.log("Отговор от добавяне на ревю:", response);
-      alert("Мнението е успешно добавено!");
-      setReviewText("");
-    } catch (error) {
-      console.error("Грешка при добавяне на мнението:", error);
-      alert("Не успяхме да добавим мнението.");
+  const handleEditReview = async (bookId, reviewId, currentText) => {
+    const newText = prompt("Редактирай мнението:", currentText);
+    if (newText !== null && newText.trim()) {
+      await updateReview(bookId, reviewId, newText.trim());
+      const updated = await getReviews(bookId);
+      setReviews(prev => ({ ...prev, [bookId]: updated }));
     }
   };
 
-  const handleEditBook = (bookId) => {
-    navigate(`/edit-book/${bookId}`);
+  const handleDeleteReview = async (bookId, reviewId) => {
+    if (window.confirm("Сигурен ли си, че искаш да изтриеш мнението?")) {
+      await deleteReview(bookId, reviewId);
+      const updated = await getReviews(bookId);
+      setReviews(prev => ({ ...prev, [bookId]: updated }));
+    }
+  };
+
+  // Функция за редактиране на книга
+  const handleEditBook = async (book) => {
+    const newTitle = prompt("Ново заглавие:", book.title);
+    const newAuthor = prompt("Нов автор:", book.author);
+
+    if (newTitle && newAuthor) {
+      try {
+        await fetch(`http://localhost:5000/api/books/${book.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: newTitle,
+            author: newAuthor,
+          }),
+        });
+
+        // Презареди списъка с книги
+        fetchBooks();
+      } catch (error) {
+        alert("Грешка при редактиране на книга.");
+        console.error("Грешка при PUT заявка:", error);
+      }
+    }
   };
 
   return (
     <div css={containerStyle}>
       <h1 css={headerStyle}>Добре дошли в сайта за книги!</h1>
 
-      <div css={loginRegisterStyle}>
-        <h2>Търсене на книги</h2>
-        <form onSubmit={handleSearch} css={formStyle}>
-          <input
-            type="text"
-            placeholder="Търсете книги..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            css={inputStyle}
-          />
-          <button type="submit" css={buttonStyle}>
-            Търсене
-          </button>
-        </form>
+      <form onSubmit={handleSearch} css={formStyle}>
+        <input
+          type="text"
+          placeholder="Търсете книги..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          css={inputStyle}
+        />
+        <button type="submit" css={buttonStyle}>Търсене</button>
+      </form>
 
-        {loading && <p>Зареждаме книгите...</p>}
+      {loading ? <p>Зареждане...</p> : books.length === 0 ? (
+        <p>Няма книги.</p>
+      ) : (
+        <ul css={bookListStyle}>
+          {books.map((book) => (
+            <li key={book.id} css={bookItemStyle}>
+              <h3>{book.title}</h3>
+              <p><strong>Автор:</strong> {book.author}</p>
 
-        {books.length === 0 ? (
-          <p>Няма налични книги.</p>
-        ) : (
-          <ul css={bookListStyle}>
-            {books.map((book) => (
-              <li key={book.id} css={bookItemStyle}>
-                <h3>{book.title}</h3>
-                <p><strong>Автор:</strong> {book.author}</p>
-                {book.description && <p><strong>Описание:</strong> {book.description}</p>}
-                {book.price && <p><strong>Цена:</strong> {book.price} лв.</p>}
+              {isLoggedIn && (
+                <button onClick={() => handleEditBook(book)} css={buttonStyle}>
+                  Редактирай книга
+                </button>
+              )}
 
-                <div>
-                  <h4>Добавете мнение:</h4>
+              <h4>Мнения:</h4>
+              <ul>
+                {(reviews[book.id] || []).map((rev) => (
+                  <li key={rev.id}>
+                    <p><strong>{rev.userEmail}</strong>: {rev.text}</p>
+                    {currentUser?.uid === rev.userId && (
+                      <>
+                        <button onClick={() => handleEditReview(book.id, rev.id, rev.text)} css={buttonStyle}>
+                          Редактирай
+                        </button>
+                        <button onClick={() => handleDeleteReview(book.id, rev.id)} css={buttonStyle}>
+                          Изтрий
+                        </button>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {isLoggedIn && (
+                <>
                   <textarea
-                    placeholder="Вашето мнение..."
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
+                    value={reviewInputs[book.id] || ""}
+                    onChange={(e) =>
+                      setReviewInputs((prev) => ({ ...prev, [book.id]: e.target.value }))
+                    }
+                    placeholder="Добави мнение..."
                     css={textareaStyle}
                   />
-                  <button 
-                    onClick={() => handleAddReview(book.id, reviewText)} 
-                    css={buttonStyle}
-                  >
+                  <button onClick={() => handleAddReview(book.id)} css={buttonStyle}>
                     Добави мнение
                   </button>
-                </div>
-
-                {isLoggedIn && (
-                  <button 
-                    onClick={() => handleEditBook(book.id)} 
-                    css={buttonStyle}
-                  >
-                    Редактирай книга
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {isLoggedIn && (
-        <button onClick={handleLogout} css={buttonStyle}>
-          Изход
-        </button>
+        <button onClick={logoutUser} css={buttonStyle}>Изход</button>
       )}
     </div>
   );
