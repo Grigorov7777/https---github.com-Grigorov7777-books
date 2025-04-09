@@ -32,12 +32,22 @@ const errorMessageStyle = css`
   background-color: #f44336; color: white;
 `;
 
+// Стилове за мненията и книгите
+const reviewsStyle = css`margin-top: 20px; padding: 20px; background-color: #f4f4f4; border-radius: 8px;`;
+const bookItemStyle = css`padding: 10px; margin-bottom: 8px; background-color: #fff; border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);`;
+
 const Profile = () => {
   const [user, setUser] = useState(null); // Състояние за съхранение на данни за потребителя
   const [loading, setLoading] = useState(true); // Състояние за проверка на зареждането
   const [newEmail, setNewEmail] = useState(''); // Състояние за новия имейл
   const [newPassword, setNewPassword] = useState(''); // Състояние за новата парола
   const [message, setMessage] = useState(null); // Състояние за съобщения за грешки/успех
+  const [books, setBooks] = useState([]); // Състояние за книгите на потребителя
+  const [newBook, setNewBook] = useState(''); // Състояние за нова книга
+  const [newReview, setNewReview] = useState(''); // Състояние за ново мнение
+  const [editIndex, setEditIndex] = useState(null); // Индекс на мнението, което се редактира
+  const [editBook, setEditBook] = useState(''); // Редактиране на книга
+  const [editReview, setEditReview] = useState(''); // Редактиране на мнение
   const navigate = useNavigate();
 
   // Функция за извличане на данни за потребителя от Firebase
@@ -54,6 +64,14 @@ const Profile = () => {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  // Извличаме мненията от localStorage
+  useEffect(() => {
+    const storedReviews = JSON.parse(localStorage.getItem('reviews'));
+    if (storedReviews) {
+      setBooks(storedReviews);
+    }
+  }, []);
 
   // Функция за обновяване на профила
   const handleSubmit = async (e) => {
@@ -73,7 +91,6 @@ const Profile = () => {
     }
 
     try {
-      // Вземаме текущия потребител от Firebase Authentication
       const currentUser = auth.currentUser;
 
       // Ако имейлът е променен, обновяваме имейла
@@ -92,6 +109,20 @@ const Profile = () => {
     }
   };
 
+  // Функция за добавяне на ново мнение
+  const handleAddReview = (e) => {
+    e.preventDefault();
+    if (newBook && newReview) {
+      const updatedBooks = [...books, { book: newBook, review: newReview }];
+      setBooks(updatedBooks);
+      setNewBook('');
+      setNewReview('');
+
+      // Записваме новите мнения в localStorage
+      localStorage.setItem('reviews', JSON.stringify(updatedBooks));
+    }
+  };
+
   // Функция за изход от профила
   const handleLogout = async () => {
     try {
@@ -102,13 +133,44 @@ const Profile = () => {
     }
   };
 
+  // Функция за редактиране на мнение
+  const handleEditReview = (index) => {
+    const bookToEdit = books[index];
+    setEditIndex(index);
+    setEditBook(bookToEdit.book);
+    setEditReview(bookToEdit.review);
+  };
+
+  // Функция за обновяване на редактираното мнение
+  const handleUpdateReview = (e) => {
+    e.preventDefault();
+    const updatedBooks = [...books];
+    updatedBooks[editIndex] = { book: editBook, review: editReview };
+    setBooks(updatedBooks);
+
+    // Записваме обновените мнения в localStorage
+    localStorage.setItem('reviews', JSON.stringify(updatedBooks));
+
+    // Нулираме състоянието за редактиране
+    setEditIndex(null);
+    setEditBook('');
+    setEditReview('');
+  };
+
+  // Функция за изтриване на мнение
+  const handleDeleteReview = (index) => {
+    const updatedBooks = books.filter((_, i) => i !== index);
+    setBooks(updatedBooks);
+    localStorage.setItem('reviews', JSON.stringify(updatedBooks));
+  };
+
   // Ако се зареждат данни, показваме индикатор за зареждане
   if (loading) return <p>Зареждам...</p>;
 
   return (
     <div css={containerStyle}>
       <h1 css={headerStyle}>Профил на потребителя</h1>
-      
+
       {/* Показваме данни за потребителя */}
       {user && (
         <div>
@@ -157,9 +219,89 @@ const Profile = () => {
         </div>
       </form>
 
-      <div>
-        <button onClick={handleLogout} css={buttonStyle}>Изход</button>
-      </div>
+      <h2 css={headerStyle}>Мнения и Книги</h2>
+
+      {/* Форма за добавяне на ново мнение */}
+      <form onSubmit={handleAddReview} css={formStyle}>
+        <div>
+          <label>
+            Книга:
+            <input
+              type="text"
+              value={newBook}
+              onChange={(e) => setNewBook(e.target.value)}
+              required
+              css={inputStyle}
+            />
+          </label>
+        </div>
+        
+        <div>
+          <label>
+            Мнение:
+            <textarea
+              value={newReview}
+              onChange={(e) => setNewReview(e.target.value)}
+              required
+              css={inputStyle}
+            />
+          </label>
+        </div>
+
+        <div>
+          <button type="submit" css={buttonStyle}>Добави мнение</button>
+        </div>
+      </form>
+
+      {/* Показваме мненията и бутоните за редактиране и изтриване */}
+      {books.length > 0 && (
+        <div css={reviewsStyle}>
+          {books.map((item, index) => (
+            <div key={index} css={bookItemStyle}>
+              <h3>{item.book}</h3>
+              <p>{item.review}</p>
+              <button onClick={() => handleEditReview(index)} css={buttonStyle}>Редактирай</button>
+              <button onClick={() => handleDeleteReview(index)} css={buttonStyle}>Изтрий</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Форма за редактиране на мнение */}
+      {editIndex !== null && (
+        <form onSubmit={handleUpdateReview} css={formStyle}>
+          <h3>Редактиране на мнение</h3>
+          <div>
+            <label>
+              Книга:
+              <input
+                type="text"
+                value={editBook}
+                onChange={(e) => setEditBook(e.target.value)}
+                required
+                css={inputStyle}
+              />
+            </label>
+          </div>
+          
+          <div>
+            <label>
+              Мнение:
+              <textarea
+                value={editReview}
+                onChange={(e) => setEditReview(e.target.value)}
+                required
+                css={inputStyle}
+              />
+            </label>
+          </div>
+
+          <div>
+            <button type="submit" css={buttonStyle}>Обнови мнение</button>
+            <button type="button" onClick={() => setEditIndex(null)} css={buttonStyle}>Отмени</button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };
