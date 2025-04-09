@@ -5,7 +5,9 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  updateEmail,
+  updatePassword
 } from "firebase/auth";
 import {
   getFirestore,
@@ -123,6 +125,38 @@ export const deleteReview = async (bookId, reviewId) => {
   } catch (error) {
     console.error("Грешка при изтриване на мнение:", error.message);
     throw new Error(error.message);
+  }
+};
+
+// 💻 Обновяване на имейл
+export const updateUserEmail = async (newEmail) => {
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      await updateEmail(user, newEmail);
+      console.log("Имейлът беше успешно обновен!");
+    } catch (error) {
+      console.error("Грешка при обновяване на имейл:", error.message);
+      throw new Error(error.message);
+    }
+  } else {
+    throw new Error("Няма влязъл потребител!");
+  }
+};
+
+// 🔐 Обновяване на парола
+export const updateUserPassword = async (newPassword) => {
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      await updatePassword(user, newPassword);
+      console.log("Паролата беше успешно обновена!");
+    } catch (error) {
+      console.error("Грешка при обновяване на парола:", error.message);
+      throw new Error(error.message);
+    }
+  } else {
+    throw new Error("Няма влязъл потребител!");
   }
 };
 

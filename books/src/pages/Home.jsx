@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";  // Импортиране на Link за навигация
 import {
   registerUser,
   loginUser,
@@ -11,35 +12,34 @@ import {
   deleteReview,
   auth
 } from "../firebase";
-import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
+import Profile from './Profile';  // Импортиране на компонента за профил
 
-// Стилове (същите както преди)
+// Стилове
 const containerStyle = css`padding: 24px; max-width: 960px; margin: 0 auto;`;
 const headerStyle = css`font-size: 3rem; font-weight: bold; text-align: center; margin-bottom: 24px;`;
-const formStyle = css`display: flex; gap: 16px; margin-bottom: 24px;`;
+const formStyle = css`display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;`;
 const inputStyle = css`padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 66%;`;
 const buttonStyle = css`
   background-color: #8B4513; color: white; padding: 12px 20px; border: none;
   border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase;
   box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3); transition: all 0.3s ease-in-out;
   font-family: 'Times New Roman', serif;
+  text-align: center;
   &:hover { background-color: #A0522D; transform: scale(1.05); }
 `;
 const bookListStyle = css`margin-top: 24px; list-style-type: none; padding: 0;`;
 const bookItemStyle = css`padding: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px;`;
 const textareaStyle = css`width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 8px;`;
-const loginRegisterStyle = css`margin-top: 24px;`;
 
 const Home = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [reviewInputs, setReviewInputs] = useState({}); // { bookId: 'text' }
-  const [reviews, setReviews] = useState({}); // { bookId: [reviews] }
+  const [reviewInputs, setReviewInputs] = useState({});
+  const [reviews, setReviews] = useState({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -104,7 +104,6 @@ const Home = () => {
     }
   };
 
-  // Функция за редактиране на книга
   const handleEditBook = async (book) => {
     const newTitle = prompt("Ново заглавие:", book.title);
     const newAuthor = prompt("Нов автор:", book.author);
@@ -113,16 +112,9 @@ const Home = () => {
       try {
         await fetch(`http://localhost:5000/api/books/${book.id}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: newTitle,
-            author: newAuthor,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: newTitle, author: newAuthor }),
         });
-
-        // Презареди списъка с книги
         fetchBooks();
       } catch (error) {
         alert("Грешка при редактиране на книга.");
@@ -144,6 +136,13 @@ const Home = () => {
           css={inputStyle}
         />
         <button type="submit" css={buttonStyle}>Търсене</button>
+        <Link to="/bookstores" css={buttonStyle}>Книжарници</Link>
+        <Link to="/libraries" css={buttonStyle}>Библиотеки</Link>
+        <Link to="/bookclubs" css={buttonStyle}>Читателски клубове</Link>
+        {/* Добавяме бутон за профил */}
+        {isLoggedIn && (
+          <Link to="/profile" css={buttonStyle}>Профил</Link>
+        )}
       </form>
 
       {loading ? <p>Зареждане...</p> : books.length === 0 ? (
@@ -185,8 +184,7 @@ const Home = () => {
                   <textarea
                     value={reviewInputs[book.id] || ""}
                     onChange={(e) =>
-                      setReviewInputs((prev) => ({ ...prev, [book.id]: e.target.value }))
-                    }
+                      setReviewInputs((prev) => ({ ...prev, [book.id]: e.target.value }))}
                     placeholder="Добави мнение..."
                     css={textareaStyle}
                   />
